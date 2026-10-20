@@ -27,6 +27,12 @@ window.__ModuleLoader__.load({
       blocked: { label: '已阻塞', color: '#e5645c' },
     }
     const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
+    const PRIORITIES = ['high', 'normal', 'low']
+    const PRIORITY_META = {
+      high: { label: '高', short: '高', color: '#e5645c' },
+      normal: { label: '中', short: '中', color: '#8b93a7' },
+      low: { label: '低', short: '低', color: '#a9b0bd' },
+    }
     const NEW_PROJECT = '__new__'
     const DAY_MS = 86400000
     const CSS_ID = 'dsh-worklog-style'
@@ -102,6 +108,31 @@ window.__ModuleLoader__.load({
 .wl-daychip { font: inherit; font-size: 10px; line-height: 15px; padding: 0 5px; border-radius: 4px; border: none !important; background: rgba(77,107,254,.12) !important; color: #4d6bfe !important; cursor: pointer; }
 .wl-daychip:hover { background: rgba(77,107,254,.2) !important; }
 .wl-datechip { flex: 0 0 auto; white-space: nowrap; font: inherit; font-size: 10px; line-height: 15px; padding: 0 5px; border-radius: 4px; background: var(--wl-soft); color: var(--wl-muted); font-variant-numeric: tabular-nums; letter-spacing: .2px; }
+.wl-pri { flex: none; font: inherit; font-size: 10px; line-height: 14px; padding: 0 5px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--wl-muted); cursor: pointer; }
+.wl-pri:hover { background: var(--wl-hover); }
+.wl-pri.p-high { background: rgba(229,100,92,.16); border-color: rgba(229,100,92,.4); color: #e5645c; font-weight: 700; }
+.wl-pri.p-normal { opacity: .7; }
+.wl-pri.p-low { opacity: .45; }
+.wl-prisel {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  flex: none;
+  width: 52px !important;
+  height: 30px !important;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 11.5px;
+  padding: 0 16px 0 7px !important;
+  border: 1px solid rgba(127,127,127,.32) !important;
+  border-radius: 7px !important;
+  background-color: rgba(127,127,127,.08) !important;
+  color: inherit !important;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b93a7' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+}
+.wl-prisel:focus { outline: none; border-color: rgba(77,107,254,.55) !important; }
 .wl-datechip.is-overdue { background: rgba(229,100,92,.14); color: #e5645c; font-weight: 600; }
 .wl-add { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .wl-add input[name="title"] { flex: 1 1 180px; min-width: 140px; height: 30px; box-sizing: border-box; font: inherit; font-size: 12.5px; padding: 0 9px; border-radius: 7px; border: 1px solid var(--wl-line); background: transparent; color: inherit; }
@@ -252,6 +283,12 @@ window.__ModuleLoader__.load({
       let hash = 0
       for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) % 360
       return 'hsl(' + hash + ' 56% 46%)'
+    }
+
+    /** 旧数据没有 priority 字段，一律按「中」处理。 */
+    function normalizePriority(value) {
+      const s = String(value == null ? '' : value).trim().toLowerCase()
+      return PRIORITIES.indexOf(s) >= 0 ? s : 'normal'
     }
 
     /** 出现过的项目：[名字, 任务数]，按任务数从多到少。 */
@@ -469,6 +506,15 @@ window.__ModuleLoader__.load({
           + '</span>'
       }
 
+      /** 优先级下拉：高 / 中 / 低，默认中。 */
+      function renderPrioritySelect(current) {
+        const value = normalizePriority(current)
+        const options = PRIORITIES.map((p) => (
+          '<option value="' + p + '"' + (p === value ? ' selected' : '') + '>' + PRIORITY_META[p].label + '</option>'
+        )).join('')
+        return '<select class="wl-prisel" name="priority" title="优先级">' + options + '</select>'
+      }
+
       /** 从项目选择器里读出最终项目名（新建输入框优先）。 */
       function readProjectPick(form) {
         const wrap = form.querySelector('.wl-projpick')
@@ -600,6 +646,7 @@ window.__ModuleLoader__.load({
             + '<div class="wl-edit-row">'
             + '<input type="date" name="date" value="' + esc(task.date) + '" />'
             + '<select name="status">' + options + '</select>'
+            + renderPrioritySelect(currentPriority)
             + renderProjectPicker(task.project || '')
             + '</div>'
             + '<div class="wl-edit-row">'
@@ -611,9 +658,12 @@ window.__ModuleLoader__.load({
 
         const meta = STATUS_META[task.status] || STATUS_META.todo
         const done = task.status === 'done'
-        // 标题独占一行（长标题不再被日期/状态挤成三行）；日期 · 状态 · 项目 · 备注 收到第二行
+        const currentPriority = normalizePriority(task.priority)
+        const priMeta = PRIORITY_META[currentPriority]
+        // 标题独占一行（长标题不再被日期/状态挤成三行）；日期 · 优先级 · 状态 · 项目 · 备注 收到第二行
         const metaParts = [
           dateChip,
+          '<button class="wl-pri p-' + currentPriority + '" data-act="priority" data-id="' + esc(task.id) + '" title="优先级：' + priMeta.label + '（点击切换）">' + priMeta.label + '</button>',
           '<button class="wl-pill s-' + esc(task.status) + '" data-act="cycle" data-id="' + esc(task.id) + '" title="切换状态（' + meta.label + '）">' + meta.label + '</button>',
         ]
         if (task.project) {
@@ -636,7 +686,11 @@ window.__ModuleLoader__.load({
         return '<div class="wl-rows">' + tasks.map((task) => renderRow(task, { showDate: true })).join('') + '</div>'
       }
 
+      /** 未完成列表：优先级高的排在前面，同优先级按记录日期从早到晚。 */
       function byDateAsc(a, b) {
+        const pa = PRIORITIES.indexOf(normalizePriority(a.priority))
+        const pb = PRIORITIES.indexOf(normalizePriority(b.priority))
+        if (pa !== pb) return pa - pb
         if (a.date !== b.date) return a.date < b.date ? -1 : 1
         return STATUSES.indexOf(a.status) - STATUSES.indexOf(b.status)
       }
@@ -653,6 +707,7 @@ window.__ModuleLoader__.load({
 
         const add = '<form class="wl-add" data-act="add">'
           + '<input name="title" maxlength="200" placeholder="记一条：今天做了什么" autocomplete="off" />'
+          + renderPrioritySelect('normal')
           + renderProjectPicker(state.filter)
           + '<button class="wl-btn wl-btn-primary" type="submit">添加</button>'
           + '</form>'
@@ -663,7 +718,7 @@ window.__ModuleLoader__.load({
         const body = state.view === 'all'
           ? '<div class="wl-listhead">全部 · ' + all.length + ' 条' + scope + (state.day ? '' : '（从新到旧）') + '</div>'
             + renderList(all.slice().sort(byDateDesc), emptyHint || '还没有记录。')
-          : '<div class="wl-listhead">未完成 · ' + open.length + ' 条' + scope + (state.day ? '' : '（从早到晚，按记录日期）') + '</div>'
+          : '<div class="wl-listhead">未完成 · ' + open.length + ' 条' + scope + (state.day ? '' : '（高优先级在前，同优先级按日期）') + '</div>'
             + renderList(open.slice().sort(byDateAsc), emptyHint || '没有未完成的任务。')
 
         return '<div class="wl-day">' + add + body + '</div>'
@@ -801,6 +856,15 @@ window.__ModuleLoader__.load({
           }
           return
         }
+        if (act === 'priority') {
+          const task = state.tasks.find((t) => t.id === id)
+          if (task) {
+            const current = normalizePriority(task.priority)
+            const next = PRIORITIES[(PRIORITIES.indexOf(current) + 1) % PRIORITIES.length]
+            save({ id, priority: next })
+          }
+          return
+        }
         if (act === 'edit') {
           state.editing = state.editing === id ? '' : id
           state.confirming = ''
@@ -882,7 +946,9 @@ window.__ModuleLoader__.load({
           const title = input ? String(input.value || '').trim() : ''
           if (!title) return
           const project = readProjectPick(form)
-          Promise.resolve(save({ title, date: todayStr(), status: 'todo', project })).then(() => {
+          const priorityEl = form.querySelector('select[name="priority"]')
+          const priority = normalizePriority(priorityEl ? priorityEl.value : 'normal')
+          Promise.resolve(save({ title, date: todayStr(), status: 'todo', priority, project })).then(() => {
             // 连续记录时不用再点一次输入框
             const next = root.querySelector('.wl-add input[name="title"]')
             if (next) next.focus()
@@ -916,6 +982,7 @@ window.__ModuleLoader__.load({
             project: readProjectPick(form),
             date: String(form.querySelector('input[name="date"]').value || todayStr()),
             status: String(form.querySelector('select[name="status"]').value || 'todo'),
+            priority: normalizePriority(form.querySelector('select[name="priority"]').value),
           })
         }
       })

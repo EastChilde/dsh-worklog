@@ -17,17 +17,17 @@ const day = (delta) => {
   return ymd(d)
 }
 
-// —— 样例数据：覆盖本月，状态齐全 ——
+// —— 样例数据：完全虚构，覆盖本月，状态与优先级齐全 ——
 const sample = [
-  { id: 'a1', date: day(0), title: '跟完供应商合同', status: 'done', note: '法务已回，等盖章', project: '供应链改造', createdAt: '2026-10-20T01:00:00.000Z', doneAt: '2026-10-20T06:00:00.000Z' },
-  { id: 'a2', date: day(0), title: '整理 Q4 交付清单', status: 'doing', note: '还差三个团队的口径', project: 'Q4 交付', createdAt: '2026-10-20T02:00:00.000Z' },
-  { id: 'a3', date: day(0), title: '回访上周的候选供应商', status: 'todo', note: '', project: '供应链改造', createdAt: '2026-10-20T03:00:00.000Z' },
-  { id: 'a4', date: day(-1), title: '把埋点看板接进周报', status: 'done', note: '', project: '数据平台', createdAt: '2026-10-19T01:00:00.000Z', doneAt: '2026-10-19T09:00:00.000Z' },
-  { id: 'a5', date: day(-1), title: '评审 A/B 实验结论', status: 'done', note: '', project: '数据平台', createdAt: '2026-10-19T02:00:00.000Z', doneAt: '2026-10-19T05:00:00.000Z' },
-  { id: 'a6', date: day(-2), title: '排期会 · 三组对齐', status: 'done', note: '结论：11/3 前冻结范围', project: 'Q4 交付', createdAt: '2026-10-18T01:00:00.000Z', doneAt: '2026-10-18T08:00:00.000Z' },
-  { id: 'a7', date: day(-3), title: '财务口径对账', status: 'blocked', note: '等财务系统导出权限', project: 'Q4 交付', createdAt: '2026-10-17T01:00:00.000Z' },
-  { id: 'a8', date: day(-5), title: '上线灰度 10%', status: 'done', note: '', project: '供应链改造', createdAt: '2026-10-15T01:00:00.000Z', doneAt: '2026-10-15T11:00:00.000Z' },
-  { id: 'a9', date: day(-8), title: '客户走访记录归档', status: 'done', note: '', project: '内部运营', createdAt: '2026-10-12T01:00:00.000Z', doneAt: '2026-10-12T07:00:00.000Z' },
+  { id: 'a1', date: day(0), title: '跟完供应商合同', status: 'done', priority: 'normal', note: '法务已回，等盖章', project: '供应链改造', createdAt: '2026-10-20T01:00:00.000Z', doneAt: '2026-10-20T06:00:00.000Z' },
+  { id: 'a2', date: day(0), title: '整理 Q4 交付清单', status: 'doing', priority: 'high', note: '还差三个团队的口径', project: 'Q4 交付', createdAt: '2026-10-20T02:00:00.000Z' },
+  { id: 'a3', date: day(0), title: '回访上周的候选供应商', status: 'todo', priority: 'high', note: '', project: '供应链改造', createdAt: '2026-10-20T03:00:00.000Z' },
+  { id: 'a4', date: day(-1), title: '把埋点看板接进周报', status: 'done', priority: 'low', note: '', project: '数据平台', createdAt: '2026-10-19T01:00:00.000Z', doneAt: '2026-10-19T09:00:00.000Z' },
+  { id: 'a5', date: day(-1), title: '评审 A/B 实验结论', status: 'done', priority: 'normal', note: '', project: '数据平台', createdAt: '2026-10-19T02:00:00.000Z', doneAt: '2026-10-19T05:00:00.000Z' },
+  { id: 'a6', date: day(-2), title: '排期会 · 三组对齐', status: 'done', priority: 'normal', note: '结论：11/3 前冻结范围', project: 'Q4 交付', createdAt: '2026-10-18T01:00:00.000Z', doneAt: '2026-10-18T08:00:00.000Z' },
+  { id: 'a7', date: day(-3), title: '财务口径对账', status: 'blocked', priority: 'high', note: '等财务系统导出权限', project: 'Q4 交付', createdAt: '2026-10-17T01:00:00.000Z' },
+  { id: 'a8', date: day(-5), title: '上线灰度 10%', status: 'done', priority: 'normal', note: '', project: '供应链改造', createdAt: '2026-10-15T01:00:00.000Z', doneAt: '2026-10-15T11:00:00.000Z' },
+  { id: 'a9', date: day(-8), title: '客户走访记录归档', status: 'done', priority: 'low', note: '', project: '内部运营', createdAt: '2026-10-12T01:00:00.000Z', doneAt: '2026-10-12T07:00:00.000Z' },
 ]
 
 // —— 桩 React ——

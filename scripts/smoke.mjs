@@ -76,13 +76,18 @@ check('热重载核心模块', r.status === 200 && r.json.ok === true && !!r.jso
 r = await call('/dsh-worklog/state')
 check('重载后路由仍然可用', r.status === 200 && Array.isArray(r.json.tasks))
 
-r = await call('/dsh-worklog/task', { title: '跟完供应商合同', date: '2026-10-20', status: 'done', note: '法务已回', project: '  供应链   改造 ' })
+r = await call('/dsh-worklog/task', { title: '跟完供应商合同', date: '2026-10-20', status: 'done', note: '法务已回', project: '  供应链   改造 ', priority: 'high' })
 check('新建任务（含 doneAt）', r.status === 200 && !!r.json.task.id && !!r.json.task.doneAt, JSON.stringify(r.json).slice(0, 120))
 check('项目名空白归一', r.json.task.project === '供应链 改造', r.json.task.project)
+check('优先级可写入', r.json.task.priority === 'high', r.json.task.priority)
 const id = r.json.task && r.json.task.id
 
 r = await call('/dsh-worklog/task', { id, status: 'doing' })
 check('改回进行中会清空 doneAt', r.status === 200 && r.json.task.status === 'doing' && r.json.task.doneAt === null)
+check('未改优先级时保留', r.json.task.priority === 'high')
+
+r = await call('/dsh-worklog/task', { id, priority: 'urgent' })
+check('非法优先级被忽略、保留原值', r.json.task.priority === 'high', r.json.task.priority)
 
 r = await call('/dsh-worklog/task', { id, title: '  跟完   供应商合同  ' })
 check('标题做空白归一', r.json.task.title === '跟完 供应商合同', r.json.task.title)
@@ -129,9 +134,11 @@ server.close()
 // ---------- 1b. 程序化 API + Agent 工具 ----------
 const coreUrl = pathToFileURL(path.join(root, 'dsh-worklog/lib/core.js')).href
 const core = await import(coreUrl)
-const created = core.saveTask({ title: '写周报', project: '测试项目', date: '2026-10-20' })
+const created = core.saveTask({ title: '写周报', project: '测试项目', date: '2026-10-20', priority: 'low' })
 check('saveTask 直接可用', !!created.id && created.project === '测试项目')
+check('saveTask 带优先级', created.priority === 'low', created.priority)
 check('listTasks 关键词命中', core.listTasks({ keyword: '周报' }).total >= 1)
+check('listTasks 可按优先级筛', core.listTasks({ priority: 'low' }).total === 1 && core.listTasks({ priority: 'high' }).total === 0)
 const summary = core.projectSummary()
 check('projectSummary 出统计', summary.length === 1 && summary[0].done === 0, JSON.stringify(summary))
 
@@ -145,17 +152,19 @@ check('注册 4 个 Agent 工具', registered.length === 4, registered.map((t) =
 check('工具定义带描述与参数', registered.every((t) => typeof t.description === 'string' && t.description.length > 20 && typeof t.execute === 'function'))
 
 const addTool = registered.find((t) => t.name === 'worklog_add')
-const added = await addTool.execute({ title: '对话里记一条', project: '测试项目' }, {})
+const added = await addTool.execute({ title: '对话里记一条', project: '测试项目', priority: 'high' }, {})
 check('worklog_add 能落库', !!added.id && added.project === '测试项目', JSON.stringify(added))
+check('worklog_add 写优先级', added.priority === 'high', added.priority)
 check('worklog_add 有文本渲染', addTool.output.render({}, added)[0].text.indexOf('对话里记一条') >= 0)
 
 const listTool = registered.find((t) => t.name === 'worklog_list')
 const listed = await listTool.execute({ project: '测试项目' }, {})
 check('worklog_list 返回汇总', listed.count === 2 && listed.summary.indexOf('对话里记一条') >= 0, listed.summary)
+check('worklog_list 汇总里带优先级', listed.summary.indexOf('优先级高') >= 0, listed.summary.split('\n')[0])
 
 const updateTool = registered.find((t) => t.name === 'worklog_update')
-const updated = await updateTool.execute({ id: added.id, status: 'done' }, {})
-check('worklog_update 改状态', updated.status === 'done')
+const updated = await updateTool.execute({ id: added.id, status: 'done', priority: 'low' }, {})
+check('worklog_update 改状态与优先级', updated.status === 'done' && updated.priority === 'low', JSON.stringify(updated))
 
 const projectsTool = registered.find((t) => t.name === 'worklog_projects')
 const projects = await projectsTool.execute({}, {})
