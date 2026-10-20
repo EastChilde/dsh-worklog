@@ -1,0 +1,18 @@
+# 依赖与构建产物
+node_modules/
+
+# 预览脚本生成的临时页面与截图（截图请放 docs/）
+/preview.html
+/preview.png
+/month.png
+/view-*.html
+/view-*.png
+
+# 系统杂项
+.DS_Store
+Thumbs.db
+*.log
+
+# 任务数据（是个人记录，永远不要进仓库）
+tasks.json
+.dsh-worklog/

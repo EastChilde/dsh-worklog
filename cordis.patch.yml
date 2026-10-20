@@ -1,0 +1,7 @@
+# dsh-worklog —— bundle patch
+#
+# 把插件插进 profile 的配置树。安装后由 dsh 的 loader 在启动时加载：
+#   dsh plugin --profile desktop add link:<本目录绝对路径>
+- insert:
+    - id: dsh-worklog
+      name: dsh-worklog

@@ -1,0 +1,50 @@
+{
+  "name": "dsh-worklog",
+  "version": "0.2.0",
+  "description": "DSH 工作记录：按天记录任务（待开始 / 进行中 / 已完成 / 已阻塞），项目归类，月历回看，未完成视图，并带 4 个 Agent 工具可让模型代记",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "worklog",
+    "calendar",
+    "tasks",
+    "todo"
+  ],
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./client/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "client",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
+      "platform": "web"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EastChilde/dsh-worklog.git"
+  },
+  "homepage": "https://github.com/EastChilde/dsh-worklog#readme",
+  "bugs": {
+    "url": "https://github.com/EastChilde/dsh-worklog/issues"
+  },
+  "author": "EastChilde",
+  "license": "MIT"
+}
