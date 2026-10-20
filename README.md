@@ -136,9 +136,3 @@ dsh plugin --profile desktop remove dsh-worklog
 | `lib/index.js`（路由表、插件挂载） | 重启 DSH |
 | `client/client.js`（界面） | 刷新页面（不行就重启） |
 
-## 下一版想加的
-
-- 标签 / 优先级 / 耗时
-- 周视图与「本周完成率」
-- 导出 Markdown 周报
-- 项目归档（不让它出现在筛选条里，但历史记录还在）
