@@ -47,6 +47,17 @@ dsh plugin --profile desktop add "github:EastChilde/dsh-worklog"
 
 装完**重启 DSH**。以后改代码推到仓库、再跑一次同样的 `add` 命令就是更新。
 
+### 从 Gitee 装（国内网络更稳）
+
+仓库镜像：<https://gitee.com/EastChilde/dsh-worklog>
+
+```powershell
+git clone https://gitee.com/EastChilde/dsh-worklog.git "$env:USERPROFILE\dsh-worklog"
+dsh plugin --profile desktop add "link:$env:USERPROFILE/dsh-worklog"
+```
+
+`dsh plugin add` 目前只认 `npm 包名 / github:owner/repo / link:本地目录` 三种目标，所以 Gitee 走「clone 下来再 link 本地目录」。之后更新：`git -C $env:USERPROFILE\dsh-worklog pull`，再重启 DSH。
+
 ### 从本地目录装（改代码时用）
 
 先在终端做一次语法自检（可选，但省事）：
