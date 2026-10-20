@@ -113,30 +113,21 @@ window.__ModuleLoader__.load({
 .wl-pri.p-high { background: rgba(229,100,92,.16); border-color: rgba(229,100,92,.4); color: #e5645c; font-weight: 700; }
 .wl-pri.p-normal { opacity: .7; }
 .wl-pri.p-low { opacity: .45; }
-.wl-prisel {
-  -webkit-appearance: none !important;
-  appearance: none !important;
-  flex: none;
-  width: 52px !important;
-  height: 30px !important;
-  box-sizing: border-box;
-  font: inherit;
-  font-size: 11.5px;
-  padding: 0 16px 0 7px !important;
-  border: 1px solid rgba(127,127,127,.32) !important;
-  border-radius: 7px !important;
-  background-color: rgba(127,127,127,.08) !important;
-  color: inherit !important;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b93a7' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 5px center;
-}
-.wl-prisel:focus { outline: none; border-color: rgba(77,107,254,.55) !important; }
+/* 优先级分段控件：三格一体，比下拉直观 */
+.wl-seg { display: inline-flex; flex: none; height: 30px; box-sizing: border-box; border: 1px solid var(--wl-line); border-radius: 7px; overflow: hidden; }
+.wl-segbtn { font: inherit; font-size: 11.5px; line-height: 1; padding: 0 11px; border: none !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; color: var(--wl-muted); cursor: pointer; }
+.wl-segbtn + .wl-segbtn { border-left: 1px solid var(--wl-line) !important; }
+.wl-segbtn:hover { background: var(--wl-hover) !important; }
+.wl-segbtn.is-on { font-weight: 700; }
+.wl-segbtn.is-on[data-value="high"] { background: rgba(229,100,92,.16) !important; color: #e5645c !important; }
+.wl-segbtn.is-on[data-value="normal"] { background: rgba(127,127,127,.14) !important; color: inherit !important; }
+.wl-segbtn.is-on[data-value="low"] { background: rgba(127,127,127,.09) !important; color: var(--wl-muted) !important; }
 .wl-datechip.is-overdue { background: rgba(229,100,92,.14); color: #e5645c; font-weight: 600; }
-.wl-add { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.wl-add input[name="title"] { flex: 1 1 180px; min-width: 140px; height: 30px; box-sizing: border-box; font: inherit; font-size: 12.5px; padding: 0 9px; border-radius: 7px; border: 1px solid var(--wl-line); background: transparent; color: inherit; }
+.wl-add { display: flex; flex-direction: column; gap: 6px; }
+.wl-add input[name="title"] { width: 100%; height: 30px; box-sizing: border-box; font: inherit; font-size: 12.5px; padding: 0 9px; border-radius: 7px; border: 1px solid var(--wl-line); background: transparent; color: inherit; }
 .wl-add input[name="title"]:focus { outline: none; border-color: rgba(77,107,254,.55); }
+.wl-add-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.wl-add-row .wl-btn { margin-left: auto; }
 .wl-add .wl-projpick { flex: none; }
 .wl-add .wl-btn { flex: none; }
 .wl-projpick { display: inline-flex; align-items: center; gap: 4px; }
@@ -506,13 +497,21 @@ window.__ModuleLoader__.load({
           + '</span>'
       }
 
-      /** 优先级下拉：高 / 中 / 低，默认中。 */
-      function renderPrioritySelect(current) {
+      /** 优先级：三格分段控件（高 / 中 / 低），比下拉更直观，也少一次点击。 */
+      function renderPrioritySeg(current) {
         const value = normalizePriority(current)
-        const options = PRIORITIES.map((p) => (
-          '<option value="' + p + '"' + (p === value ? ' selected' : '') + '>' + PRIORITY_META[p].label + '</option>'
+        const buttons = PRIORITIES.map((p) => (
+          '<button type="button" class="wl-segbtn' + (p === value ? ' is-on' : '') + '"'
+          + ' data-act="priority-pick" data-value="' + p + '" title="优先级：' + PRIORITY_META[p].label + '">'
+          + PRIORITY_META[p].label + '</button>'
         )).join('')
-        return '<select class="wl-prisel" name="priority" title="优先级">' + options + '</select>'
+        return '<span class="wl-seg" role="group" aria-label="优先级">' + buttons + '</span>'
+      }
+
+      /** 从分段控件里读出选中的优先级（默认中）。 */
+      function readPriorityPick(form) {
+        const on = form.querySelector('.wl-seg .wl-segbtn.is-on')
+        return normalizePriority(on ? on.getAttribute('data-value') : 'normal')
       }
 
       /** 从项目选择器里读出最终项目名（新建输入框优先）。 */
@@ -627,6 +626,7 @@ window.__ModuleLoader__.load({
       function renderRow(task, opts) {
         const showDate = !!(opts && opts.showDate)
         const overdue = task.status !== 'done' && String(task.date) < todayStr()
+        const currentPriority = normalizePriority(task.priority)
         const dateChip = showDate
           ? '<span class="wl-datechip' + (overdue ? ' is-overdue' : '') + '" title="' + esc(task.date) + '">' + esc(String(task.date).slice(5)) + '</span>'
           : ''
@@ -646,10 +646,10 @@ window.__ModuleLoader__.load({
             + '<div class="wl-edit-row">'
             + '<input type="date" name="date" value="' + esc(task.date) + '" />'
             + '<select name="status">' + options + '</select>'
-            + renderPrioritySelect(currentPriority)
             + renderProjectPicker(task.project || '')
             + '</div>'
             + '<div class="wl-edit-row">'
+            + renderPrioritySeg(currentPriority)
             + '<input name="note" value="' + esc(task.note || '') + '" maxlength="4000" placeholder="备注（可留空）" />'
             + '</div>'
             + '</form>'
@@ -658,7 +658,6 @@ window.__ModuleLoader__.load({
 
         const meta = STATUS_META[task.status] || STATUS_META.todo
         const done = task.status === 'done'
-        const currentPriority = normalizePriority(task.priority)
         const priMeta = PRIORITY_META[currentPriority]
         // 标题独占一行（长标题不再被日期/状态挤成三行）；日期 · 优先级 · 状态 · 项目 · 备注 收到第二行
         const metaParts = [
@@ -707,9 +706,11 @@ window.__ModuleLoader__.load({
 
         const add = '<form class="wl-add" data-act="add">'
           + '<input name="title" maxlength="200" placeholder="记一条：今天做了什么" autocomplete="off" />'
-          + renderPrioritySelect('normal')
+          + '<div class="wl-add-row">'
+          + renderPrioritySeg('normal')
           + renderProjectPicker(state.filter)
           + '<button class="wl-btn wl-btn-primary" type="submit">添加</button>'
+          + '</div>'
           + '</form>'
 
         // 点了日历某一天时，把这一天显示成一个可清除的条件
@@ -865,6 +866,15 @@ window.__ModuleLoader__.load({
           }
           return
         }
+        // 表单里的优先级分段控件：只切 class，不重绘（保住已输入的标题）
+        if (act === 'priority-pick') {
+          const seg = target.closest('.wl-seg')
+          if (seg) {
+            for (const btn of seg.querySelectorAll('.wl-segbtn')) btn.classList.remove('is-on')
+            target.classList.add('is-on')
+          }
+          return
+        }
         if (act === 'edit') {
           state.editing = state.editing === id ? '' : id
           state.confirming = ''
@@ -946,8 +956,7 @@ window.__ModuleLoader__.load({
           const title = input ? String(input.value || '').trim() : ''
           if (!title) return
           const project = readProjectPick(form)
-          const priorityEl = form.querySelector('select[name="priority"]')
-          const priority = normalizePriority(priorityEl ? priorityEl.value : 'normal')
+          const priority = readPriorityPick(form)
           Promise.resolve(save({ title, date: todayStr(), status: 'todo', priority, project })).then(() => {
             // 连续记录时不用再点一次输入框
             const next = root.querySelector('.wl-add input[name="title"]')
@@ -982,7 +991,7 @@ window.__ModuleLoader__.load({
             project: readProjectPick(form),
             date: String(form.querySelector('input[name="date"]').value || todayStr()),
             status: String(form.querySelector('select[name="status"]').value || 'todo'),
-            priority: normalizePriority(form.querySelector('select[name="priority"]').value),
+            priority: readPriorityPick(form),
           })
         }
       })
