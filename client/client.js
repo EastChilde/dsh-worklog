@@ -28,10 +28,11 @@ window.__ModuleLoader__.load({
     }
     const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
     const PRIORITIES = ['high', 'normal', 'low']
+    // bars = 信号格数：低 1 格 / 中 2 格 / 高 3 格，配合颜色比纯文字更容易扫
     const PRIORITY_META = {
-      high: { label: '高', short: '高', color: '#e5645c' },
-      normal: { label: '中', short: '中', color: '#8b93a7' },
-      low: { label: '低', short: '低', color: '#a9b0bd' },
+      high: { label: '高', color: '#e0554d', bars: 3 },
+      normal: { label: '中', color: '#d9902a', bars: 2 },
+      low: { label: '低', color: '#7f8b9e', bars: 1 },
     }
     const NEW_PROJECT = '__new__'
     const DAY_MS = 86400000
@@ -110,18 +111,27 @@ window.__ModuleLoader__.load({
 .wl-datechip { flex: 0 0 auto; white-space: nowrap; font: inherit; font-size: 10px; line-height: 15px; padding: 0 5px; border-radius: 4px; background: var(--wl-soft); color: var(--wl-muted); font-variant-numeric: tabular-nums; letter-spacing: .2px; }
 .wl-pri { flex: none; font: inherit; font-size: 10px; line-height: 14px; padding: 0 5px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--wl-muted); cursor: pointer; }
 .wl-pri:hover { background: var(--wl-hover); }
-.wl-pri.p-high { background: rgba(229,100,92,.16); border-color: rgba(229,100,92,.4); color: #e5645c; font-weight: 700; }
-.wl-pri.p-normal { opacity: .7; }
-.wl-pri.p-low { opacity: .45; }
-/* 优先级分段控件：三格一体，比下拉直观 */
+.wl-pri.p-high { background: rgba(224,85,77,.16); border-color: rgba(224,85,77,.4); color: #e0554d; font-weight: 700; }
+.wl-pri.p-normal { background: rgba(217,144,42,.14); border-color: rgba(217,144,42,.3); color: #b97a1e; }
+.wl-pri.p-low { opacity: .7; }
+/* 优先级分段控件：低 / 中 / 高，每档用信号格数 + 颜色表达强度 */
 .wl-seg { display: inline-flex; flex: none; height: 30px; box-sizing: border-box; border: 1px solid var(--wl-line); border-radius: 7px; overflow: hidden; }
-.wl-segbtn { font: inherit; font-size: 11.5px; line-height: 1; padding: 0 11px; border: none !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; color: var(--wl-muted); cursor: pointer; }
+.wl-segbtn { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: 11.5px; line-height: 1; padding: 0 9px; border: none !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; color: var(--wl-muted); cursor: pointer; }
 .wl-segbtn + .wl-segbtn { border-left: 1px solid var(--wl-line) !important; }
 .wl-segbtn:hover { background: var(--wl-hover) !important; }
+.wl-bars { display: inline-flex; align-items: flex-end; gap: 1.5px; height: 11px; }
+.wl-bars i { display: block; width: 2.5px; border-radius: 1px; background: currentColor; opacity: .28; }
+.wl-bars i:nth-child(1) { height: 4px; }
+.wl-bars i:nth-child(2) { height: 7px; }
+.wl-bars i:nth-child(3) { height: 10px; }
+.wl-bars i.on { opacity: 1; }
+.wl-segbtn.p-high .wl-bars { color: #e0554d; }
+.wl-segbtn.p-normal .wl-bars { color: #d9902a; }
+.wl-segbtn.p-low .wl-bars { color: #7f8b9e; }
 .wl-segbtn.is-on { font-weight: 700; }
-.wl-segbtn.is-on[data-value="high"] { background: rgba(229,100,92,.16) !important; color: #e5645c !important; }
-.wl-segbtn.is-on[data-value="normal"] { background: rgba(127,127,127,.14) !important; color: inherit !important; }
-.wl-segbtn.is-on[data-value="low"] { background: rgba(127,127,127,.09) !important; color: var(--wl-muted) !important; }
+.wl-segbtn.is-on.p-high { background: rgba(224,85,77,.14) !important; color: #e0554d !important; }
+.wl-segbtn.is-on.p-normal { background: rgba(217,144,42,.16) !important; color: #b97a1e !important; }
+.wl-segbtn.is-on.p-low { background: rgba(127,139,158,.18) !important; color: #6c7889 !important; }
 .wl-datechip.is-overdue { background: rgba(229,100,92,.14); color: #e5645c; font-weight: 600; }
 .wl-add { display: flex; flex-direction: column; gap: 6px; }
 .wl-add input[name="title"] { width: 100%; height: 30px; box-sizing: border-box; font: inherit; font-size: 12.5px; padding: 0 9px; border-radius: 7px; border: 1px solid var(--wl-line); background: transparent; color: inherit; }
@@ -497,14 +507,22 @@ window.__ModuleLoader__.load({
           + '</span>'
       }
 
-      /** 优先级：三格分段控件（高 / 中 / 低），比下拉更直观，也少一次点击。 */
+      /**
+       * 优先级：低 / 中 / 高 三档，每档用「信号格 + 颜色」表示强度
+       * （低 1 格灰蓝、中 2 格琥珀、高 3 格红），比下拉直观，也比纯文字多一层信息。
+       */
       function renderPrioritySeg(current) {
         const value = normalizePriority(current)
-        const buttons = PRIORITIES.map((p) => (
-          '<button type="button" class="wl-segbtn' + (p === value ? ' is-on' : '') + '"'
-          + ' data-act="priority-pick" data-value="' + p + '" title="优先级：' + PRIORITY_META[p].label + '">'
-          + PRIORITY_META[p].label + '</button>'
-        )).join('')
+        const order = ['low', 'normal', 'high']
+        const buttons = order.map((p) => {
+          const meta = PRIORITY_META[p]
+          const bars = [1, 2, 3].map((i) => '<i class="' + (i <= meta.bars ? 'on' : '') + '"></i>').join('')
+          return '<button type="button" class="wl-segbtn p-' + p + (p === value ? ' is-on' : '') + '"'
+            + ' data-act="priority-pick" data-value="' + p + '" title="' + meta.label + '优先级">'
+            + '<span class="wl-bars">' + bars + '</span>'
+            + '<span class="wl-segtxt">' + meta.label + '</span>'
+            + '</button>'
+        }).join('')
         return '<span class="wl-seg" role="group" aria-label="优先级">' + buttons + '</span>'
       }
 
