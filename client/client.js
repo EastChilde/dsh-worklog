@@ -173,7 +173,10 @@ window.__ModuleLoader__.load({
 .wl-check.is-on { background: rgba(53,184,119,.22); border-color: rgba(53,184,119,.75); color: #35b877; }
 .wl-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .wl-title { font-size: 12.5px; line-height: 1.35; word-break: break-word; }
-.wl-note { font-size: 10.5px; line-height: 15px; color: var(--wl-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+/* 备注：默认最多两行，点开看全文（长备注不再被挤成一行省略号） */
+.wl-note { font-size: 11px; line-height: 15px; color: var(--wl-muted); margin-top: 2px; white-space: pre-wrap; word-break: break-word; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wl-note:hover { color: inherit; }
+.wl-note.is-open { display: block; -webkit-line-clamp: none; overflow: visible; }
 .wl-pill { flex: none; font-size: 10.5px; line-height: 16px; padding: 0 7px; border-radius: 999px; margin-top: 1px; }
 .wl-pill.s-todo { background: rgba(127,127,127,.16); color: var(--wl-muted); }
 .wl-pill.s-doing { background: rgba(232,163,61,.2); color: #c98421; }
@@ -186,7 +189,8 @@ window.__ModuleLoader__.load({
 .wl-edit-row { display: flex; align-items: center; gap: 6px; }
 .wl-edit input, .wl-edit select { height: 30px; box-sizing: border-box; font: inherit; font-size: 12px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--wl-line); background: transparent; color: inherit; min-width: 0; }
 .wl-edit input[name="title"] { flex: 1; }
-.wl-edit input[name="note"] { flex: 1; }
+.wl-edit textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 12px; line-height: 1.45; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--wl-line); background: transparent; color: inherit; resize: vertical; min-height: 46px; }
+.wl-edit-foot { justify-content: flex-start; }
 .wl-edit input:focus, .wl-edit select:focus { outline: none; border-color: rgba(77,107,254,.55); }
 .wl-err { font-size: 11.5px; color: #e5645c; }
 .wl-notice { font-size: 11.5px; color: #2f9e66; }
@@ -363,6 +367,7 @@ window.__ModuleLoader__.load({
         projConfirm: '',
         editing: '',
         confirming: '',
+        noteOpen: new Set(),
         loading: true,
         error: '',
         notice: '',
@@ -667,8 +672,10 @@ window.__ModuleLoader__.load({
             + renderProjectPicker(task.project || '')
             + '</div>'
             + '<div class="wl-edit-row">'
+            + '<textarea name="note" maxlength="4000" rows="2" placeholder="备注（可留空，支持多行）">' + esc(task.note || '') + '</textarea>'
+            + '</div>'
+            + '<div class="wl-edit-row wl-edit-foot">'
             + renderPrioritySeg(currentPriority)
-            + '<input name="note" value="' + esc(task.note || '') + '" maxlength="4000" placeholder="备注（可留空）" />'
             + '</div>'
             + '</form>'
             + '</div>'
@@ -677,7 +684,7 @@ window.__ModuleLoader__.load({
         const meta = STATUS_META[task.status] || STATUS_META.todo
         const done = task.status === 'done'
         const priMeta = PRIORITY_META[currentPriority]
-        // 标题独占一行（长标题不再被日期/状态挤成三行）；日期 · 优先级 · 状态 · 项目 · 备注 收到第二行
+        // 第一行标题；第二行元信息；备注单独一行，最多两行、点开看全文
         const metaParts = [
           dateChip,
           '<button class="wl-pri p-' + currentPriority + '" data-act="priority" data-id="' + esc(task.id) + '" title="优先级：' + priMeta.label + '（点击切换）">' + priMeta.label + '</button>',
@@ -686,12 +693,17 @@ window.__ModuleLoader__.load({
         if (task.project) {
           metaParts.push('<span class="wl-proj"><i class="wl-dot" style="background:' + projectColor(task.project) + '"></i>' + esc(task.project) + '</span>')
         }
-        if (task.note) metaParts.push('<span class="wl-note">' + esc(task.note) + '</span>')
+        const noteOpen = state.noteOpen.has(task.id)
+        const noteHtml = task.note
+          ? '<div class="wl-note' + (noteOpen ? ' is-open' : '') + '" data-act="note" data-id="' + esc(task.id) + '"'
+            + ' title="' + (noteOpen ? '点击收起' : '点击查看全文') + '">' + esc(task.note) + '</div>'
+          : ''
         return '<div class="wl-row' + (done ? ' is-done' : '') + '" data-id="' + esc(task.id) + '">'
           + '<button class="wl-check' + (done ? ' is-on' : '') + '" data-act="toggle" data-id="' + esc(task.id) + '" title="' + (done ? '标记为待开始' : '标记完成') + '">✓</button>'
           + '<div class="wl-body">'
           + '<div class="wl-title">' + esc(task.title) + '</div>'
           + '<div class="wl-meta">' + metaParts.join('') + '</div>'
+          + noteHtml
           + '</div>'
           + '<button class="wl-icon" data-act="edit" data-id="' + esc(task.id) + '" title="编辑">✎</button>'
           + '<button class="wl-icon wl-danger" data-act="del" data-id="' + esc(task.id) + '" title="删除">' + (state.confirming === task.id ? '确认?' : '×') + '</button>'
@@ -893,6 +905,13 @@ window.__ModuleLoader__.load({
           }
           return
         }
+        // 备注：默认两行截断，点开看全文
+        if (act === 'note') {
+          if (state.noteOpen.has(id)) state.noteOpen.delete(id)
+          else state.noteOpen.add(id)
+          render()
+          return
+        }
         if (act === 'edit') {
           state.editing = state.editing === id ? '' : id
           state.confirming = ''
@@ -1005,7 +1024,7 @@ window.__ModuleLoader__.load({
           save({
             id,
             title,
-            note: String(form.querySelector('input[name="note"]').value || ''),
+            note: String(form.querySelector('textarea[name="note"]').value || ''),
             project: readProjectPick(form),
             date: String(form.querySelector('input[name="date"]').value || todayStr()),
             status: String(form.querySelector('select[name="status"]').value || 'todo'),

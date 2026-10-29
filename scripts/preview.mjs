@@ -20,7 +20,7 @@ const day = (delta) => {
 // —— 样例数据：完全虚构，覆盖本月，状态与优先级齐全 ——
 const sample = [
   { id: 'a1', date: day(0), title: '跟完供应商合同', status: 'done', priority: 'normal', note: '法务已回，等盖章', project: '供应链改造', createdAt: '2026-10-20T01:00:00.000Z', doneAt: '2026-10-20T06:00:00.000Z' },
-  { id: 'a2', date: day(0), title: '整理 Q4 交付清单', status: 'doing', priority: 'high', note: '还差三个团队的口径', project: 'Q4 交付', createdAt: '2026-10-20T02:00:00.000Z' },
+  { id: 'a2', date: day(0), title: '整理 Q4 交付清单', status: 'doing', priority: 'high', note: '还差三个团队的口径。数据平台那边说要把埋点表和交付表对齐后再给，供应链改造本周内会补上物流时效字段；另外财务口径要以 9 月结账后的版本为准，别用月中那版。', project: 'Q4 交付', createdAt: '2026-10-20T02:00:00.000Z' },
   { id: 'a3', date: day(0), title: '回访上周的候选供应商', status: 'todo', priority: 'high', note: '', project: '供应链改造', createdAt: '2026-10-20T03:00:00.000Z' },
   { id: 'a4', date: day(-1), title: '把埋点看板接进周报', status: 'done', priority: 'low', note: '', project: '数据平台', createdAt: '2026-10-19T01:00:00.000Z', doneAt: '2026-10-19T09:00:00.000Z' },
   { id: 'a5', date: day(-1), title: '评审 A/B 实验结论', status: 'done', priority: 'normal', note: '', project: '数据平台', createdAt: '2026-10-19T02:00:00.000Z', doneAt: '2026-10-19T05:00:00.000Z' },
@@ -153,6 +153,9 @@ if (process.env.WL_VIEW) clickAct('view', { 'data-view': process.env.WL_VIEW })
 
 // WL_DAY=2026-10-14 时，模拟点一下日历上的那一天
 if (process.env.WL_DAY) clickAct('day', { 'data-date': process.env.WL_DAY })
+
+// WL_NOTE=任务 id 时，模拟点一下那条备注（展开长备注）
+if (process.env.WL_NOTE) clickAct('note', { 'data-id': process.env.WL_NOTE })
 
 const defaultHtml = panel.innerHTML
 
