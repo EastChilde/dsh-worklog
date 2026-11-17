@@ -104,6 +104,25 @@ window.__ModuleLoader__.load({
 }
 .wl-projfilter.is-on { color: #4d6bfe !important; font-weight: 600; }
 .wl-projfilter:focus { outline: none; }
+/*
+ * 原生下拉的「弹层」是浏览器画的，不跟我们的 CSS 走：
+ * 深色主题下 option 会继承容器的浅色文字，而弹层底色还是白的 → 白字白底，内容全看不见。
+ * 所以把弹层里的颜色显式钉死（并声明 color-scheme，避免 UA 用深色皮肤）。
+ */
+.dshwl select, .wl-overlay select { color-scheme: light; }
+.dshwl select option, .dshwl select optgroup,
+.wl-overlay select option, .wl-overlay select optgroup {
+  background-color: #ffffff !important;
+  color: #1c1f26 !important;
+}
+@media (prefers-color-scheme: dark) {
+  .dshwl select, .wl-overlay select { color-scheme: dark; }
+  .dshwl select option, .dshwl select optgroup,
+  .wl-overlay select option, .wl-overlay select optgroup {
+    background-color: #23262d !important;
+    color: #e7e9ee !important;
+  }
+}
 .wl-mini.is-on { border-color: rgba(77,107,254,.5); background: rgba(77,107,254,.12); color: #4d6bfe; }
 .wl-listhead { font-size: 10.5px; color: var(--wl-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .wl-daychip { font: inherit; font-size: 10px; line-height: 15px; padding: 0 5px; border-radius: 4px; border: none !important; background: rgba(77,107,254,.12) !important; color: #4d6bfe !important; cursor: pointer; }

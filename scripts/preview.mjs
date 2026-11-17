@@ -179,6 +179,7 @@ const html = `<!doctype html>
     .frame { background: #1d2026; border-color: rgba(255,255,255,.1); box-shadow: none; }
     .note { color: #8b93a7; }
   }
+  ${process.env.WL_DARK ? 'body { background:#16181d; color:#e7e9ee; } .frame { background:#1d2026; border-color:rgba(255,255,255,.1); box-shadow:none; } .frame-head { border-color: rgba(255,255,255,.08); }' : ''}
 ${css}
 </style>
 <div class="frame">
