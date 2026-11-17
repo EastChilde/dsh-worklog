@@ -1,6 +1,6 @@
 {
   "name": "dsh-worklog",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "DSH 工作记录：按天记录任务（待开始 / 进行中 / 已完成 / 已阻塞），项目归类，月历回看，未完成视图，并带 4 个 Agent 工具可让模型代记",
   "keywords": [
     "dsh",
